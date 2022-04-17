@@ -1,3 +1,3 @@
 # sewerat-c2
-A customisable c2 server implemented as a Discord bot.
+A customisable c2 server for [our remote access tool](https://github.com/nullndvoid/sewerat.git)
 
