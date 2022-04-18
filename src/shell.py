@@ -18,15 +18,12 @@ class SeweratShell(Debug):
 
         self.readshell() # popping shell
 
-
-
     # open the serweratc2 manuals
     def seweratman(self):
         if os.path.exists(self.configfile["seweratman"]):
             with open(self.configfile["seweratman"] + "/help.man", "r") as manfile:
                 print(manfile.read())
         
-
     # read shell input 
     def readshell(self):
         while True:
