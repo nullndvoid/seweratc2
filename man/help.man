@@ -1,0 +1,7 @@
+- exit or quit:
+    exit the program but returns 0
+
+- clear or cls 
+    execute terminal command "clear"
+    cleans the terminal 
+

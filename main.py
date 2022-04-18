@@ -1,58 +1,38 @@
-import argparse
-import signal
-import sys
-from queue import Queue
-from threading import Thread
+from tracemalloc import start
+from src.startup import * 
+from src.config import *
+from src.shell import *
 
-from program import COLORS, check_root, show_ascii_logo, start_server
+# basic config
+basicconfig = {
+    "configfile" : "config.json",
+    "asciilogos" : "asciilogos",
+    "seweratman" : "man"
+}
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description="A C2 server for sewerat.",
-                                     prog="seweratc2")
-    parser.add_argument("host",
-                        help="The IP address to listen on",
-                        metavar="[HOST]",
-                        default="0.0.0.0",
-                        nargs='?')
-    parser.add_argument("port",
-                        help="The port to listen on.",
-                        metavar="[PORT]",
-                        default=443,
-                        action="store",
-                        nargs='?')
+# call the server startup methods
+def serverstart():
+    ServerStarUp(basicconfig["asciilogos"])
 
-    args = parser.parse_args()
+# call the json argument parser
+def jsonparse() -> dict:
+    parser = JsonParser(basicconfig["configfile"])
+    configfile = parser.loadfile()
+    return configfile
 
-    host = args.host
-    port = args.port
+# start sewerat shell
+def startshell(config: dict):
+    SeweratShell(config)
 
-    return (host, port)
 
 
 def main():
-    # no more stack trace when you hit ctrl-c
-    def handler():
-        sys.exit(0)
+    serverstart()             # server startup 
+    jconfig = jsonparse()     # read config file returns dict
+    startshell(jconfig)       # pass the returned dict
+    
 
-    signal.signal(signal.SIGINT, handler)
-
-    check_root()
-
-    host, port = get_args()
-    port = int(port)
-    show_ascii_logo()
-
-    queue = Queue()
-
-    # Spawn server in another thread.
-    Thread(target=start_server(), args={
-        queue,
-    })
-    prompt = "sewerat"
-
-    while True:
-        command = input(f"{COLORS[1]}{prompt} > ").strip()
 
 
 if __name__ == "__main__":
